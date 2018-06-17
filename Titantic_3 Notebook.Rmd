@@ -1,20 +1,144 @@
 ---
 title: "R Notebook - "
 output: html_notebook
+editor_options: 
+  chunk_output_type: console
 ---
 Kaggle Titanic tutorial 
 17.06.2018 12.26
 Link: https://www.kaggle.com/mrisdal/exploring-survival-on-the-titanic
 
-Exploring the Titanic Dataset 
+- Exploring the Titanic Dataset
+- Illustrative data visualisation
+- Model to Predict survival on the Titanic (using randomForest)
 
+1. Feature Engineering
+2. Missing value imputation
+3. Model prediction
+
+
+Load packages and libraries 
 ```{r}
+# Load libraries
 
+install.packages("mice")
+
+library(ggplot2)            # Visualisation
+library(ggthemes)           # Visualisation
+library(scales)             # Visualisation
+library(dplyr)              # Data manipulation
+library(mice)               # Imputation
+library(randomForest)       # Classification algorithm
 
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+Read in data
+```{r}
+getwd() # Check directory
+test <- read.csv('test.csv', stringsAsFactors = F)
+train <- read.csv('train.csv', stringsAsFactors = F)
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+full <- bind_rows(train, test) # bind training and test data
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+# Check structure of data
+str(test)
+str (train)
+str(full)
+
+```
+
+Variable    Name	Description
+
+Survived	  Survived (1) or died (0)
+Pclass	    Passenger’s class
+Name	      Passenger’s name
+Sex	        Passenger’s sex
+Age	        Passenger’s age
+SibSp	      Number of siblings/spouses aboard
+Parch	      Number of parents/children aboard
+Ticket	    Ticket number
+Fare	      Fare
+Cabin	      Cabin
+Embarked	  Port of embarkation
+
+
+2. Feature Engineering
+```{r}
+# Extracting passengers names to feed into prediction model
+full$Title <- gsub('(.*, )|(\\..*)', '', full$Name)
+
+# Count by title
+table(full$Sex, full$Title)
+table(full$Sex, full$Survived)
+table(full$Survived, full$Sex)
+table(full$Survived, full$Pclass)
+
+# surnames of passenger name
+full$Surname <- sapply(full$Name,  
+                      function(x) strsplit(x, split = '[,.]')[[1]][1])
+
+str(full$Surname)
+nlevels(factor(full$Surname))
+nlevels(factor(full$Sex)) # confirm 2 genders
+nlevels(factor(full$Pclass))
+
+cat(paste('We have', nlevels(factor(full$Surname)), ' unique surnames. I would be interested to infer ethnicity based on surname --- another time.'))
+
+# Crate new family variables e.g. Family size
+
+full$Fsize <- full$SibSp + full$Parch + 1 # create new column 'fsize' to full. inc themselves
+nlevels(factor(full$Fsize))
+
+#create a family variable
+full$Family <- paste(full$Surname, full$Fsize, sep='_') # concatenate surname and family size with _ seperator
+
+full$Surname
+full$Fsize
+full$Family
+
+#Visualise the relationship between family size and survival
+#dev.new()             #New gfx window to show plot
+
+if (dev.interactive()) dev.new()  #New gfx window to show plot
+ggplot(full[1:891,], aes(x = Fsize, fill = factor(Survived))) +
+  geom_bar(stat='count', position='dodge') +
+  scale_x_continuous(breaks=c(1:11)) +
+  labs(x = 'Family Size') +
+  theme_few()
+```
+
+Survival penalty to singletons and those with family sizes above 4. Collapse this variable into three factors. 
+```{r}
+
+# Discretize family size
+full$FsizeD[full$Fsize == 1] <- 'singleton'
+full$FsizeD[full$Fsize < 5 & full$Fsize > 1] <- 'small'
+full$FsizeD[full$Fsize > 4] <- 'large'
+
+# Show family size by survival using a mosaic plot
+if (dev.interactive()) dev.new()  #New gfx window to show plot
+mosaicplot(table(full$FsizeD, full$Survived), main='Family Size by Survival', shade=TRUE)
+table(full$Survived,full$FsizeD)
+summary(full$Age)  # We can see 263 NA's / Missing values
+
+table(is.na(full))      # count of Missing data for entire table
+table(is.na(full$Age))  # Missing data for specific column
+sapply(full, function(x) sum(is.na(x))) # NA  count by columns
+rowSums(is.na (full))   # NA count by rows
+
+```
+The mosaic plot shows that we preserve our rule that there’s a survival penalty among singletons and large families, but a benefit for passengers in small families. I want to do something further with our age variable, but 263 rows have missing age values, so we will have to wait until after we address missingness.
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
