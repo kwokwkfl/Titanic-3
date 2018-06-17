@@ -119,8 +119,8 @@ full$FsizeD[full$Fsize > 4] <- 'large'
 if (dev.interactive()) dev.new()  #New gfx window to show plot
 mosaicplot(table(full$FsizeD, full$Survived), main='Family Size by Survival', shade=TRUE)
 table(full$Survived,full$FsizeD)
-summary(full$Age)  # We can see 263 NA's / Missing values
 
+summary(full$Age)  # We can see 263 NA's / Missing values
 table(is.na(full))      # count of Missing data for entire table
 table(is.na(full$Age))  # Missing data for specific column
 sapply(full, function(x) sum(is.na(x))) # NA  count by columns
@@ -128,12 +128,30 @@ rowSums(is.na (full))   # NA count by rows
 
 ```
 The mosaic plot shows that we preserve our rule that there’s a survival penalty among singletons and large families, but a benefit for passengers in small families. I want to do something further with our age variable, but 263 rows have missing age values, so we will have to wait until after we address missingness.
+
+Check the string length of surnames 
+```{r}
+# NOTE use ggplot2:: to find what functions in a package ggplot2. useful if you are unsure. Also you don't need to install/load the library if you call 'ggplot2::'
+
+install.packages("stringr")
+library(stringr)
+summary(full)
+tail(full)
+#convert to data framea to plot
+name_length <- dplyr::data_frame(length = stringr::str_length(full$Surname))   #string length of surnames
+table(stringr::str_length(full$Surname), full$Surname)
+table(stringlength)
+str(name_length)
+dev.new()
+ggplot(name_length, aes(x= length)) + geom_histogram(bins = 20)
+
+summary(name_length) #get mean value
+```
+The average surname on the Titanic is around 7 characters long. Perhaps it would be interesting to compare to current average surnames lengths. 
+
 ```{r}
 
 ```
-
-
-
 
 
 
